@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quest Log Manager</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --bg: #f8fafc;
+        }
+
+        body { font-family: sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 20px; }
+        .card { background: white; padding: 1.5rem; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 450px; position: relative; }
+        
+        h1 { text-align: center; color: var(--primary); margin-top: 0; }
+        h2 { font-size: 1.2rem; border-bottom: 2px solid #eee; padding-bottom: 5px; }
+
+        .item-row { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
+        .item-row input[type="checkbox"] { transform: scale(1.5); cursor: pointer; }
+        .completed { text-decoration: line-through; color: #94a3b8; }
+
+        #editor-overlay { 
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.8); z-index: 100; overflow-y: auto; padding: 20px; box-sizing: border-box;
+        }
+        .editor-content { background: white; padding: 20px; border-radius: 15px; max-width: 400px; margin: auto; }
+        .edit-row { display: flex; gap: 5px; margin-bottom: 8px; }
+        input[type="text"] { flex-grow: 1; padding: 8px; border: 1px solid #ccc; border-radius: 5px; }
+       
+        #reward-section { 
+            margin-top: 20px; padding: 15px; background: #f0fdf4; 
+            border: 3px dashed var(--success); border-radius: 12px; display: none; 
+        }
+        .reward-pill { 
+            padding: 10px; margin: 5px 0; border: 1px solid #e2e8f0; 
+            border-radius: 8px; cursor: pointer; transition: 0.2s; background: white;
+        }
+        .selected-reward { background: #dcfce7; border-color: var(--success); font-weight: bold; }
+
+        .btn { border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .btn-add { background: var(--primary); color: white; width: 100%; margin-top: 10px; }
+        .btn-del { background: var(--danger); color: white; }
+        .btn-close { background: #334155; color: white; width: 100%; margin-top: 20px; }
+        .settings-icon { position: absolute; top: 20px; right: 20px; cursor: pointer; font-size: 1.5rem; opacity: 0.6; }
+        .settings-icon:hover { opacity: 1; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="settings-icon" onclick="toggleEditor()">⚙️</div>
+    <h1>🚀 Kid Quests</h1>
+    
+    <div id="quest-list"></div>
+
+    <div id="reward-section">
+        <h2>🎉 Mission Complete!</h2>
+        <p>Choose 1 or 2 rewards:</p>
+        <div id="reward-list"></div>
+    </div>
+</div>
+
+<div id="editor-overlay">
+    <div class="editor-content">
+        <h2>Edit Responsibilities</h2>
+        <div id="edit-tasks-container"></div>
+        <button class="btn btn-add" onclick="addItem('tasks')">+ Add Responsibility</button>
+
+        <h2 style="margin-top:25px">Edit Privileges</h2>
+        <div id="edit-rewards-container"></div>
+        <button class="btn btn-add" onclick="addItem('rewards')">+ Add Privilege</button>
+
+        <button class="btn btn-close" onclick="toggleEditor()">Done & Save</button>
+    </div>
+</div>
+
+<script>
+    // 1. Initial Data & State
+    let data = JSON.parse(localStorage.getItem('questAppData')) || {
+        tasks: ["Pick up clothes", "Read 15 mins"],
+        rewards: ["15 min Phone", "Pick the dessert"],
+        lastResetDate: new Date().toLocaleDateString(),
+        checkedStatus: [] // Saves which boxes are checked
+    };
+
+    function saveData() {
+        localStorage.setItem('questAppData', JSON.stringify(data));
+        renderApp();
+    }
+
+    // 2. The Midnight Reset
+    function checkMidnightReset() {
+        const today = new Date().toLocaleDateString();
+        if (data.lastResetDate !== today) {
+            data.lastResetDate = today;
+            data.checkedStatus = []; // Clear the checks!
+            saveData();
+        }
+    }
+
+    // 3. Rendering the App
+    function renderApp() {
+        const questList = document.getElementById('quest-list');
+        questList.innerHTML = data.tasks.map((t, i) => {
+            const isChecked = data.checkedStatus.includes(t);
+            return `
+                <div class="item-row ${isChecked ? 'completed' : ''}">
+                    <input type="checkbox" id="task-${i}" ${isChecked ? 'checked' : ''} 
+                           onchange="toggleTask('${t}')">
+                    <label for="task-${i}">${t}</label>
+                </div>
+            `;
+        }).join('');
+
+        const rewardList = document.getElementById('reward-list');
+        rewardList.innerHTML = data.rewards.map(r => `
+            <div class="reward-pill" onclick="this.classList.toggle('selected-reward')">
+                ✨ ${r}
+            </div>
+        `).join('');
+
+        renderEditor();
+        updateRewardVisibility();
+    }
+
+    // 4. Interaction Logic
+    function toggleTask(taskName) {
+        const index = data.checkedStatus.indexOf(taskName);
+        if (index > -1) {
+            data.checkedStatus.splice(index, 1);
+        } else {
+            data.checkedStatus.push(taskName);
+        }
+        saveData();
+    }
+
+    function updateRewardVisibility() {
+        const totalTasks = data.tasks.length;
+        const completedTasks = data.checkedStatus.length;
+        const allDone = totalTasks > 0 && completedTasks >= totalTasks;
+        
+        document.getElementById('reward-section').style.display = allDone ? 'block' : 'none';
+    }
+
+    // 5. Editor Functions
+    function renderEditor() {
+        const tCont = document.getElementById('edit-tasks-container');
+        const rCont = document.getElementById('edit-rewards-container');
+        
+        tCont.innerHTML = data.tasks.map((t, i) => `
+            <div class="edit-row">
+                <input type="text" value="${t}" onchange="updateItem('tasks', ${i}, this.value)">
+                <button class="btn btn-del" onclick="removeItem('tasks', ${i})">✕</button>
+            </div>
+        `).join('');
+
+        rCont.innerHTML = data.rewards.map((r, i) => `
+            <div class="edit-row">
+                <input type="text" value="${r}" onchange="updateItem('rewards', ${i}, this.value)">
+                <button class="btn btn-del" onclick="removeItem('rewards', ${i})">✕</button>
+            </div>
+        `).join('');
+    }
+
+    function toggleEditor() {
+        const overlay = document.getElementById('editor-overlay');
+        const isOpening = overlay.style.display !== 'block';
+        overlay.style.display = isOpening ? 'block' : 'none';
+    }
+
+    function addItem(type) {
+        data[type].push(type === 'tasks' ? "New Responsibility" : "New Privilege");
+        saveData();
+    }
+
+    function removeItem(type, index) {
+        const itemValue = data[type][index];
+        data[type].splice(index, 1);
+        // If removing a task, also remove it from checked status
+        if (type === 'tasks') {
+            data.checkedStatus = data.checkedStatus.filter(val => val !== itemValue);
+        }
+        saveData();
+    }
+
+    function updateItem(type, index, val) {
+        data[type][index] = val;
+        saveData();
+    }
+
+    // Initialization
+    checkMidnightReset();
+    renderApp();
+</script>
+</body>
+</html>
