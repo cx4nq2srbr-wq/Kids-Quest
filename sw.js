@@ -1,4 +1,4 @@
-const CACHE_NAME = 'quest-log-v1.0.1';
+const CACHE_NAME = 'quest-log-v1.0.1 '; // Increment this to force an update!
 const ASSETS = [
   './',
   './index.html',
@@ -7,20 +7,27 @@ const ASSETS = [
   './icon-512.png'
 ];
 
-// Install the Service Worker and cache files
+// Force the new service worker to take over immediately
 self.addEventListener('install', (event) => {
+  self.skipWaiting(); 
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS);
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
+  );
+});
+
+// Clean up old caches
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) => {
+      return Promise.all(
+        keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
+      );
     })
   );
 });
 
-// Serve files from cache when offline
 self.addEventListener('fetch', (event) => {
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
-    })
+    caches.match(event.request).then((res) => res || fetch(event.request))
   );
 });
