@@ -117,7 +117,29 @@
 
 <script>
 
-const APP_VERSION = "1.0.5"; // Change this whenever you push an update!
+function displayVersion() {
+    const versionTag = document.getElementById('version-tag');
+    
+    // Check if a service worker is active
+    if (navigator.serviceWorker.controller) {
+        // Create a message channel to hear the reply
+        const messageChannel = new MessageChannel();
+        messageChannel.port1.onmessage = (event) => {
+            if (event.data && event.data.type === 'VERSION_INFO') {
+                // Strip "quest-log-" and just show the version number
+                versionTag.innerText = event.data.version.replace('quest-log-', '');
+            }
+        };
+
+        // Ask the Service Worker for the version
+        navigator.serviceWorker.controller.postMessage(
+            { type: 'GET_VERSION' },
+            [messageChannel.port2]
+        );
+    } else {
+        versionTag.innerText = "offline/loading";
+    }
+}
 
 function displayVersion() {
     document.getElementById('version-tag').innerText = "v" + APP_VERSION;
@@ -298,6 +320,7 @@ async function forceUpdate() {
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('./sw.js').then(reg => {
+                displayVersion(); // Update version display after SW is ready
                 reg.onupdatefound = () => {
                     const worker = reg.installing;
                     worker.onstatechange = () => {

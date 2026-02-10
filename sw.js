@@ -1,4 +1,4 @@
-const CACHE_NAME = 'quest-log-v1.0.4 '; // Increment this to force an update!
+const CACHE_NAME = 'quest-log-v1.0.6 '; // Increment this to force an update!
 const ASSETS = [
   './',
   './index.html',
@@ -30,4 +30,14 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request).then((res) => res || fetch(event.request))
   );
+});
+
+// Listen for a request from index.html for the version name
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'GET_VERSION') {
+    event.source.postMessage({
+      type: 'VERSION_INFO',
+      version: CACHE_NAME // This sends back 'quest-log-v1.0.4' (or whatever you named it)
+    });
+  }
 });
