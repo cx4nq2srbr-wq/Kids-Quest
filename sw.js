@@ -1,4 +1,4 @@
-const CACHE_NAME = 'quest-log-v1.0.6 '; // Increment this to force an update!
+const CACHE_NAME = 'quest-log-v1.0.6'; // Increment this to force an update!
 const ASSETS = [
   './',
   './index.html',
@@ -16,13 +16,17 @@ self.addEventListener('install', (event) => {
 });
 
 // Clean up old caches
+// Update your Activate listener in sw.js
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
-        keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
-      );
-    })
+    Promise.all([
+      self.clients.claim(), // Forces the SW to take control of the page immediately
+      caches.keys().then((keys) => {
+        return Promise.all(
+          keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
+        );
+      })
+    ])
   );
 });
 

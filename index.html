@@ -117,32 +117,49 @@
 
 <script>
 
+// ONLY ONE displayVersion function!
 function displayVersion() {
     const versionTag = document.getElementById('version-tag');
     
-    // Check if a service worker is active
-    if (navigator.serviceWorker.controller) {
-        // Create a message channel to hear the reply
-        const messageChannel = new MessageChannel();
-        messageChannel.port1.onmessage = (event) => {
-            if (event.data && event.data.type === 'VERSION_INFO') {
-                // Strip "quest-log-" and just show the version number
-                versionTag.innerText = event.data.version.replace('quest-log-', '');
-            }
-        };
-
-        // Ask the Service Worker for the version
-        navigator.serviceWorker.controller.postMessage(
-            { type: 'GET_VERSION' },
-            [messageChannel.port2]
-        );
-    } else {
-        versionTag.innerText = "offline/loading";
+    // If the controller isn't ready yet, wait a moment and try again
+    if (!navigator.serviceWorker.controller) {
+        setTimeout(displayVersion, 500); 
+        return;
     }
+
+    const messageChannel = new MessageChannel();
+    messageChannel.port1.onmessage = (event) => {
+        if (event.data && event.data.type === 'VERSION_INFO') {
+            // This cleans up 'quest-log-v1.0.6' into just 'v1.0.6'
+            versionTag.innerText = event.data.version.replace('quest-log-', '');
+        }
+    };
+
+    navigator.serviceWorker.controller.postMessage(
+        { type: 'GET_VERSION' },
+        [messageChannel.port2]
+    );
 }
 
-function displayVersion() {
-    document.getElementById('version-tag').innerText = "v" + APP_VERSION;
+// Update the Registration block at the bottom
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').then(reg => {
+            // Once the SW is active and controlling the page, show version
+            navigator.serviceWorker.ready.then(() => {
+                displayVersion();
+            });
+
+            reg.onupdatefound = () => {
+                const worker = reg.installing;
+                worker.onstatechange = () => {
+                    if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+                        window.location.reload();
+                    }
+                };
+            };
+        });
+    });
 }
 
     let data = JSON.parse(localStorage.getItem('questAppData')) || {
