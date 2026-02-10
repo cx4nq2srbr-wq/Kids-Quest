@@ -1,4 +1,4 @@
-const CACHE_NAME = 'quest-log-v1.0.2 '; // Increment this to force an update!
+const CACHE_NAME = 'quest-log-v1.0.3 '; // Increment this to force an update!
 const ASSETS = [
   './',
   './index.html',
