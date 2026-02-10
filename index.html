@@ -68,15 +68,15 @@
 <body>
 
 <div class="card">
-    <div class="settings-icon" onclick="toggleEditor()">⚙️</div>
-    <h1>🚀 Kid Quests</h1>
+    <div class="settings-icon" onclick="openParentGate()">⚙️</div>
+    <h1>🚀 Kids Quest</h1>
     <div id="quest-list"></div>
 </div>
 
 <div id="reward-section">
     <div style="font-size: 4rem;">🏆</div>
     <h1>Mission Complete!</h1>
-    <p>You earned it! Choose 1 or 2 rewards:</p>
+    <p>You earned it! Choose a reward:</p>
     <div id="reward-list"></div>
     <button class="btn btn-back" onclick="document.getElementById('reward-section').style.display='none'">Back to Quests</button>
 </div>
@@ -186,75 +186,88 @@
     }
 
     // Parental Gate Logic
-    function toggleEditor() {
+    // 1. New dedicated function to OPEN the gate
+    function openParentGate() {
         const gate = document.getElementById('parent-gate');
-        document.getElementById('gate-input').value = "";
+        const input = document.getElementById('gate-input');
+        input.value = ""; // Clear old input
+    
+    // Generate 4 random numbers
         let codeArr = [];
         let wordArr = [];
         for(let i=0; i<4; i++) {
             let num = Math.floor(Math.random() * 10);
-            codeArr.push(num); wordArr.push(numberWords[num]);
+            codeArr.push(num);
+            wordArr.push(numberWords[num]);
         }
+    
         currentGateCode = codeArr.join("");
         document.getElementById('code-words').innerText = wordArr.join(" ");
-        gate.style.display = 'flex';
+        gate.style.display = 'flex'; // Show the gate
     }
 
-    function verifyGate() {
-        if (document.getElementById('gate-input').value === currentGateCode) {
-            closeGate();
-            document.getElementById('editor-overlay').style.display = 'block';
-        } else {
-            alert("Incorrect code!");
-            toggleEditor();
-        }
+    // 2. Update the verify function
+function verifyGate() {
+    const input = document.getElementById('gate-input').value;
+    if (input === currentGateCode) {
+        closeGate();
+        document.getElementById('editor-overlay').style.display = 'block'; // Open Editor
+    } else {
+        alert("Incorrect code. Try again!");
+        openParentGate(); // Generate a fresh code on fail
     }
+}
 
-    function closeGate() { document.getElementById('parent-gate').style.display = 'none'; }
-    function closeEditor() { document.getElementById('editor-overlay').style.display = 'none'; }
+function closeGate() {
+    document.getElementById('parent-gate').style.display = 'none';
+}
+
+function closeEditor() {
+    document.getElementById('editor-overlay').style.display = 'none';
+}
 
     // Editor Logic
-    function renderEditor() {
-        const tCont = document.getElementById('edit-tasks-container');
-        const rCont = document.getElementById('edit-rewards-container');
-        const createEditRow = (type, item, i) => `
-            <div class="edit-row">
-                <div class="move-btns">
-                    <button class="btn-move" onclick="moveItem('${type}', ${i}, -1)">▲</button>
-                    <button class="btn-move" onclick="moveItem('${type}', ${i}, 1)">▼</button>
-                </div>
-                <input type="text" value="${item}" onchange="updateItem('${type}', ${i}, this.value)">
-                <button class="btn btn-del" onclick="removeItem('${type}', ${i})">✕</button>
-            </div>`;
-        tCont.innerHTML = data.tasks.map((t, i) => createEditRow('tasks', t, i)).join('');
-        rCont.innerHTML = data.rewards.map((r, i) => createEditRow('rewards', r, i)).join('');
-    }
+function renderEditor() {
+    const tCont = document.getElementById('edit-tasks-container');
+    const rCont = document.getElementById('edit-rewards-container');
+    const createEditRow = (type, item, i) => `
+        <div class="edit-row">
+            <div class="move-btns">
+                <button class="btn-move" onclick="moveItem('${type}', ${i}, -1)">▲</button>
+                <button class="btn-move" onclick="moveItem('${type}', ${i}, 1)">▼</button>
+            </div>
+            <input type="text" value="${item}" onchange="updateItem('${type}', ${i}, this.value)">
+            <button class="btn btn-del" onclick="removeItem('${type}', ${i})">✕</button>
+        </div>`;
+    tCont.innerHTML = data.tasks.map((t, i) => createEditRow('tasks', t, i)).join('');
+    rCont.innerHTML = data.rewards.map((r, i) => createEditRow('rewards', r, i)).join('');
+}
 
-    function addItem(type) {
-        data[type].push(type === 'tasks' ? "New Responsibility" : "New Privilege");
+function addItem(type) {
+    data[type].push(type === 'tasks' ? "New Responsibility" : "New Privilege");
+    saveData();
+}
+
+function removeItem(type, index) {
+    if (confirm("Delete this item?")) {
+        const itemValue = data[type][index];
+        data[type].splice(index, 1);
+        if (type === 'tasks') data.checkedStatus = data.checkedStatus.filter(v => v !== itemValue);
         saveData();
     }
+}
 
-    function removeItem(type, index) {
-        if (confirm("Delete this item?")) {
-            const itemValue = data[type][index];
-            data[type].splice(index, 1);
-            if (type === 'tasks') data.checkedStatus = data.checkedStatus.filter(v => v !== itemValue);
-            saveData();
-        }
-    }
+function updateItem(type, index, val) {
+    data[type][index] = val;
+    saveData();
+}
 
-    function updateItem(type, index, val) {
-        data[type][index] = val;
-        saveData();
-    }
-
-    function moveItem(type, index, direction) {
-        const newIndex = index + direction;
-        if (newIndex < 0 || newIndex >= data[type].length) return;
-        [data[type][index], data[type][newIndex]] = [data[type][newIndex], data[type][index]];
-        saveData();
-    }
+function moveItem(type, index, direction) {
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= data[type].length) return;
+    [data[type][index], data[type][newIndex]] = [data[type][newIndex], data[type][index]];
+    saveData();
+}
 
     async function forceUpdate() {
         if (confirm("Clear cache and refresh?")) {
