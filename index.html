@@ -350,9 +350,37 @@ async function forceUpdate() {
         });
     }
 
-    checkMidnightReset();
-    renderApp();
-    displayVersion();
+   // Initialization
+checkMidnightReset();
+renderApp();
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').then(reg => {
+            // Wait for the service worker to be fully ready before asking for version
+            navigator.serviceWorker.ready.then(() => {
+                // Give it a tiny 100ms breath to ensure the message listener is active
+                setTimeout(displayVersion, 100);
+            });
+
+            reg.onupdatefound = () => {
+                const worker = reg.installing;
+                worker.onstatechange = () => {
+                    if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+                        window.location.reload();
+                    }
+                };
+            };
+        });
+    });
+    
+    // Also listen for messages globally in case the SW sends info back
+    navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'VERSION_INFO') {
+            document.getElementById('version-tag').innerText = event.data.version.replace('quest-log-', '');
+        }
+    });
+}
 </script>
 </body>
 </html>
