@@ -58,7 +58,14 @@
         
         .settings-icon { position: absolute; top: 20px; right: 20px; cursor: pointer; font-size: 1.5rem; opacity: 0.6; }
         
-        .confetti { position: absolute; width: 100px; height: 100px; top: -10px; opacity: 0; animation: fall 3s infinite; pointer-events: none; border-radius: 50%; }
+.confetti { 
+    position: absolute; 
+    top: -10px; 
+    opacity: 0; 
+    animation: fall 3s infinite; 
+    pointer-events: none; 
+    border-radius: 2px; /* Small squares look better than circles */
+}
         @keyframes fall { 0% { transform: translateY(0) rotate(0deg); opacity: 1; } 100% { transform: translateY(100vh) rotate(360deg); opacity: 0; } }
 
         .move-btns { display: flex; flex-direction: column; gap: 2px; }
@@ -97,8 +104,8 @@
     </div>
 </div>
 
-<div id="parent-gate" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:300; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; box-sizing:border-box; text-align:center;">
-    <h2>Adults Only</h2>
+<div id="parent-gate" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:300; flex-direction:column; align-items:center; justify-content:center; padding:20px; box-sizing:border-box; text-align:center;">
+    <h2>Parents Only</h2>
     <p>Please type the numbers below to enter settings:</p>
     <h3 id="code-words" style="letter-spacing: 2px; color: var(--primary); font-size: 1.5rem; margin: 20px 0;"></h3>
     <input type="number" id="gate-input" pattern="\d*" style="font-size: 2rem; width: 150px; text-align: center; padding: 10px; border: 2px solid #cbd5e1; border-radius: 10px; margin-bottom: 20px;">
